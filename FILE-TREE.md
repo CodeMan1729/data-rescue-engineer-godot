@@ -4,7 +4,8 @@
 
 ```
 数据抢救工程师_Godot原生版_v0.3/
-├── CLAUDE.md                  # 给 AI 的项目规则（含「改动前后必看文件树」）
+├── CLAUDE.md                  # [本地文件，不入库，已在 .gitignore] 给 AI 的项目规则（含「改动前后必看文件树」）
+├── .gitignore                 # 排除引擎/编译器、临时下载文件、密钥类文件、CLAUDE.md
 ├── FILE-TREE.md               # 本文件：文件树与一句话用途
 ├── README.md                  # 玩家向说明：运行方式、玩法、反馈修改记录
 ├── project.godot              # Godot 工程配置：主场景 main.tscn，1480x940，GL Compatibility
@@ -43,4 +44,5 @@ main.tscn → main.gd ─(F5)→ runner.ps1 → tcc/gcc 编译 firmware/*.c → 
 
 ## 变更记录
 
+- 2026-10-13：修复 F5（runner.ps1/setup-compiler.ps1 加 BOM）；编辑器改 VS Code Dark+ C 配色；新增 .gitignore；推送 GitHub。
 - 2026-10-13：修复启动器（续传下载、`--path` 尾部反斜杠 bug）；新增 FILE-TREE.md、CLAUDE.md。
