@@ -1,0 +1,24 @@
+; Data Rescue native Godot 4 project. Open in Godot 4.7 or compatible 4.x.
+config_version=5
+
+[application]
+config/name="数据抢救工程师 | DATA RESCUE"
+run/main_scene="res://main.tscn"
+config/description="工业控制室，真实 C 固件调试，逐字节数据恢复"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+
+[display]
+window/size/viewport_width=1480
+window/size/viewport_height=940
+window/size/window_width_override=1480
+window/size/window_height_override=940
+window/stretch/mode="canvas_items"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+
+[gui]
+theme/default_font_size=16
+

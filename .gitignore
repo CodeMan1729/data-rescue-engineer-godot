@@ -1,0 +1,13 @@
+tools/godot/
+tools/tcc/
+*.zip
+*.part
+*.corrupt
+.env*
+*.key
+*.pem
+.claude/
+.godot/
+run_result.txt
+firmware_test.exe
+CLAUDE.md
