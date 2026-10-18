@@ -2,6 +2,8 @@ extends Node3D
 
 const INTERACTABLE_SCRIPT = preload("res://scripts/world/interactable.gd")
 @onready var station: Node3D = $Station
+@onready var mine_vista: MineVista = %MineVista
+@onready var mine_site: MineSite = %MineSite
 
 func _ready() -> void:
 	# Open the existing hinge only in this instance. Never rewrite the GLB.
@@ -10,6 +12,7 @@ func _ready() -> void:
 	hinge.rotation.y = deg_to_rad(-100.0)
 	_build_collisions()
 	_build_interactions()
+	_connect_mine()
 
 func _bounds(prefixes: Array[String]) -> AABB:
 	var bounds := AABB()
@@ -94,3 +97,15 @@ func _build_interactions() -> void:
 
 func _on_interacted(player: Node3D, key: String) -> void:
 	player.get_node("HUD/Status").text = "%s：交互已触发（占位）" % key
+
+func _connect_mine() -> void:
+	# T07 drives mine_vista.set_state() and mine_site.set_open(). The site lamps copy the far view.
+	mine_vista.levels_changed.connect(mine_site.apply_lamp_levels)
+	mine_site.apply_lamp_levels(mine_vista.levels)
+	mine_site.interacted.connect(_on_mine_interacted)
+	# Development aid: `-- --at-mine` starts the player in front of the camp gate.
+	if "--at-mine" in OS.get_cmdline_user_args():
+		$Player.global_position = mine_site.to_global(Vector3(0.0, 0.05, 8.0))
+
+func _on_mine_interacted(key: String, player: Node3D) -> void:
+	player.get_node("HUD/Status").text = "矿场·%s：交互已触发（占位）" % key

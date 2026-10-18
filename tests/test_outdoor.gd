@@ -167,7 +167,8 @@ func run() -> void:
 				near_count += node.multimesh.instance_count
 			else:
 				far_count += node.multimesh.instance_count
-	check(near_count == outdoor.manifest.instance_count and far_count == near_count, "Missing vegetation instances")
+	# Vegetation inside a clearing (the mine camp) is skipped on purpose.
+	check(near_count == outdoor.manifest.instance_count - outdoor.cleared_instances and far_count == near_count, "Missing vegetation instances")
 	check(outdoor.get_node("Boundary").get_child_count() == 4, "Boundary missing")
 	check(outdoor.get_node("Trunks").get_child_count() > 0, "Tree collisions missing")
 	check(outdoor.get_node("Rocks").get_child_count() > 0, "Rock collisions missing")

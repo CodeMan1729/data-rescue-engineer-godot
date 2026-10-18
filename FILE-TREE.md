@@ -7,6 +7,7 @@
 ├── .gitignore                 # 排除引擎/编译器、临时下载文件、密钥类文件、CLAUDE.md
 ├── FILE-TREE.md               # 本文件：文件树与一句话用途
 ├── AGENTS.md                  # 给 AI 的项目入口（GPT/Codex 自动读取）
+├── CLAUDE.md                  # [本地文件，不入库，已在 .gitignore] Claude 的项目规则：改动前后核对文件树
 ├── PLAN.md                    # 游戏目标、山区工程师背景与矿场救援主线（用户所写，AI 不得改）
 ├── STORY-BEATS.md             # 剧情圣经与 18 幕节拍表 v2：核心设定、暗线节点、四个声音、矿场 3D 层、结局（作家定稿，用户可改）
 ├── progress.md                # 进度、关键决定、任务状态表
@@ -53,8 +54,8 @@
 │   │   ├── vegetation.glb[.import] # 70 类源植被与石块的近远网格及导入配置
 │   │   └── manifest.json      # 源文件与导出哈希、坐标变换、3,086 个实例
 │   ├── mine/
-│   │   ├── mine_site.glb      # 入口营地；28,104 三角形；23 碰撞标记、8 交互标记
-│   │   └── mine_vista.glb     # 远景轮廓与四处发光体；444 三角形
+│   │   ├── mine_site.glb[.import] # 入口营地；28,104 三角形；23 碰撞标记、8 交互标记；T13b 已接入世界
+│   │   └── mine_vista.glb[.import] # 远景轮廓与四处发光体；444 三角形；T13b 已接入世界
 │   └── mountain_station/
 │       ├── mountain_repair_station.glb   # 维修站模型（含老电脑、传真机、电台、机架、地图），T04 未改
 │       ├── mountain_repair_station.glb.import # Godot 场景导入配置
@@ -62,12 +63,13 @@
 ├── project.godot              # Godot 工程配置：主场景 main.tscn，1480x940，GL Compatibility
 ├── main.tscn                  # 原有 2D 原型主场景：根节点 Control，挂 scripts/main.gd
 ├── scenes/world/
-│   ├── world.tscn             # T04/T06 独立世界入口：维修站、玩家、室外与天气
+│   ├── world.tscn             # T04/T06/T13b 独立世界入口：维修站、玩家、室外与天气、矿场远景与营地（节点 Mine）
 │   └── player.tscn            # 第一人称玩家、胶囊碰撞、相机和 HUD
 ├── 启动游戏.bat               # 启动器：引擎在则直接启动；否则调用 install-godot.ps1；--path 用 %PROJ%（无尾部反斜杠）
 ├── 安装引擎.bat               # 单独运行 install-godot.ps1
 ├── 安装编译器.bat             # 单独运行 setup-compiler.ps1
 ├── docs/
+│   ├── T13b-mine.md           # T13b 矿场位置、MineVista/MineSite 接口、验证命令和用户目视检查清单
 │   ├── T06-outdoor.md         # T06 运行、天气接口、导出、验证及用户目视清单
 │   ├── T04-world.md           # T04 运行方法、接口、验证命令和用户目视检查清单
 │   └── 设备手册.md            # 游戏内设备/任务背景手册
@@ -77,11 +79,13 @@
 │   └── trace_harness.c        # 评分夹具（输出 SUMMARY| 等协议行）；游戏内黄色只读，每次 F5 前自动还原官方版
 ├── scripts/
 │   ├── world/
-│   │   ├── outdoor.gd[.uid]   # 分块地形、MultiMesh LOD、树石碰撞、地图边界与前廊缓坡；草地泥土植被无高光，湿度渐变
+│   │   ├── outdoor.gd[.uid]   # 分块地形、MultiMesh LOD、树石碰撞、地图边界与前廊缓坡；草地泥土植被无高光，湿度渐变；跳过 outdoor_clearing 组（矿场营地）范围内的植被
 │   │   ├── environment.gd[.uid] # 自动天气与昼夜模拟、日月光、雨粒子及雨声占位；保留 set_preset 给 T07
 │   │   ├── interactable.gd[.uid] # 可启用的交互基类、提示及信号；UID 由 Godot 生成
 │   │   ├── player.gd[.uid]    # 行走、鼠标视角、暂停操作和遮挡射线
-│   │   └── world.gd[.uid]     # 组合简化碰撞、五个占位交互点和开启门实例
+│   │   ├── world.gd[.uid]     # 组合简化碰撞、五个占位交互点和开启门实例；连接矿场灯光、交互反馈与 --at-mine
+│   │   ├── mine_vista.gd[.uid] # T13b MineVista：矿场远景，set_state(off/on/flicker/rain)，灯光光晕，远近版切换
+│   │   └── mine_site.gd[.uid] # T13b MineSite：营地碰撞与交互区、set_open 不可见墙、4 盏营地灯、清空植被范围
 │   ├── main.gd.uid           # Godot 为既有脚本生成的资源标识
 │   ├── data_bus.gd.uid       # Godot 为既有脚本生成的资源标识
 │   ├── main.gd                # 全部界面与游戏逻辑：关卡、可折叠侧栏、三文件标签页（绿可编辑/黄只读）、编译、回放、音效
@@ -90,7 +94,8 @@
 │   ├── setup-compiler.ps1     # 下载便携 TinyCC 到 tools/tcc
 │   └── install-godot.ps1      # 安装 Godot：续传、进度/速度/ETA、SHA512 校验、暂存解压
 ├── tests/
-│   ├── test_outdoor.gd[.uid] # T06 无头天气模拟、材质高光、地形、边界及出入门物理测试
+│   ├── test_mine.gd[.uid]    # T13b 无头测试：标记命名、远景状态、开放接口、植被清空、地面贴合、交互、真实行走
+│   ├── test_outdoor.gd[.uid] # T06 无头天气模拟、材质高光、地形、边界及出入门物理测试（植被数量扣除营地清空部分）
 │   ├── test_world.gd[.uid]   # T04 无头物理与交互回归测试及 Godot 资源标识
 │   ├── README.txt             # 测试说明
 │   └── test_c.sh              # C 固件测试脚本
@@ -109,6 +114,10 @@ main.tscn → main.gd ─(F5)→ runner.ps1 → tcc/gcc 编译 firmware/*.c → 
 ```
 
 ## 变更记录
+
+- 2026-10-18：用户目视 T13b 后反馈两点，已修。（1）矿场进不去：营地默认关闭，不可见墙把玩家挡在门口。`world.tscn` 里 `MineSite.start_open` 改为 `true`；脚本默认值仍是关闭；新增开发参数 `--mine-closed`；T07 接入时应在游戏开始调用 `set_open(false)`，ch12 再开放。（2）行走加快：`player.gd` 的 `walk_speed` 从 2.4 改为 3.6 米/秒，慢走不变。更新 `mine_site.gd`、`world.tscn`、`player.gd`、`tests/test_mine.gd`、`docs/T13b-mine.md`、`docs/T04-world.md`、`progress.md`。无新增、无删除文件。无头测试 `test_mine.gd`、`test_world.gd`、`test_outdoor.gd` 通过。未截图、未测帧率。
+
+- 2026-10-18：完成 T13b 矿场接入，待用户目视审核（由 Claude 执行）。新增 `scripts/world/mine_vista.gd`、`mine_site.gd`（含 UID）、`tests/test_mine.gd`（含 UID）、`docs/T13b-mine.md`。修改 `scenes/world/world.tscn`（加 `Mine`、`MineVista`、`MineSite`）、`scripts/world/world.gd`（连接灯光、交互反馈、`--at-mine`）、`scripts/world/outdoor.gd`（营地范围内不生成植被与树石碰撞，移除 155 个实例）、`tests/test_outdoor.gd`（植被数量扣除清空部分）、`art_source/mine/README.md`（状态行）、`progress.md`。补录原清单缺项：`CLAUDE.md`（本地文件）与两个矿场 GLB 的 `.import`。无删除。矿场放在东侧山南麓平地 (92, -0.26, 96)，远景版与营地版同位，85 米处切换。无头导入、世界启动、`test_mine.gd`、`test_world.gd`、`test_outdoor.gd`、`validate_mine.gd` 通过。维修站 GLB、`.blend`、矿场 GLB 与导出脚本未改。未截图、未渲染检查、未测帧率。`_reference/` 未访问。
 
 - 2026-10-18：用户目视审核 T06 通过（“完美！”）。更新 `progress.md`、`docs/T06-outdoor.md` 与本文件的验收状态。无文件新增或删除，代码未修改。
 

@@ -5,9 +5,14 @@ var manifest: Dictionary
 var wet_materials: Array[StandardMaterial3D] = [] # Hard surfaces that turn glossy in rain.
 var terrain_materials: Array[StandardMaterial3D] = [] # Soil and meadow: no specular, only darken when wet.
 var terrain_colors: Array[Color] = []
+var clearings: Array[Rect2] = [] # World XZ areas without vegetation, e.g. the mine camp.
+var cleared_instances := 0
 
 func _ready() -> void:
 	manifest = JSON.parse_string(FileAccess.get_file_as_string(DATA_PATH + "manifest.json"))
+	# Nodes in this group (MineSite) report their footprint before the vegetation is built.
+	for node in get_tree().get_nodes_in_group("outdoor_clearing"):
+		clearings.append(node.get_clearing_rect())
 	for region in manifest.chunks:
 		var scene: Node3D = load(DATA_PATH + region + ".glb").instantiate()
 		scene.name = region
@@ -48,6 +53,9 @@ func _build_vegetation() -> void:
 		var groups: Dictionary = {}
 		for values in manifest.instances[str(int(species.id))]:
 			var transform := Transform3D(Basis(Vector3(values[0], values[1], values[2]), Vector3(values[3], values[4], values[5]), Vector3(values[6], values[7], values[8])), Vector3(values[9], values[10], values[11]))
+			if _is_cleared(transform.origin):
+				cleared_instances += 1
+				continue
 			var cell := Vector2i(floori(transform.origin.x / 32), floori(transform.origin.z / 32))
 			if not groups.has(cell):
 				groups[cell] = []
@@ -89,6 +97,12 @@ func _build_vegetation() -> void:
 				batch.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				add_child(batch)
 	library.free()
+
+func _is_cleared(point: Vector3) -> bool:
+	for rect in clearings:
+		if rect.has_point(Vector2(point.x, point.z)):
+			return true
+	return false
 
 func _build_boundary() -> void:
 	var b: Array = manifest.bounds_xz
