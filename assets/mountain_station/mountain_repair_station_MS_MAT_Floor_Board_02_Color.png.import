@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://xtyidpdcfou"
-path="res://.godot/imported/mountain_repair_station_MS_MAT_Floor_Board_02_Color.png-3f0c1632046c8cf44d8fdc5efb956cd4.ctex"
+path.s3tc="res://.godot/imported/mountain_repair_station_MS_MAT_Floor_Board_02_Color.png-3f0c1632046c8cf44d8fdc5efb956cd4.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "05222946e7ecc7dd4cede858e434b019"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/mountain_station/mountain_repair_station_MS_MAT_Floor_Board_02_Color.png"
-dest_files=["res://.godot/imported/mountain_repair_station_MS_MAT_Floor_Board_02_Color.png-3f0c1632046c8cf44d8fdc5efb956cd4.ctex"]
+dest_files=["res://.godot/imported/mountain_repair_station_MS_MAT_Floor_Board_02_Color.png-3f0c1632046c8cf44d8fdc5efb956cd4.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +41,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

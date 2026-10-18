@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://8ewbcewgb2fg"
-path="res://.godot/imported/mountain_repair_station_MS_MAT_Cast_Iron_Color.png-8abb855ce854c1e3e648b034fdbfe69f.ctex"
+path.s3tc="res://.godot/imported/mountain_repair_station_MS_MAT_Cast_Iron_Color.png-8abb855ce854c1e3e648b034fdbfe69f.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "8c3f345de5fd9b3732850736e2566bc5"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/mountain_station/mountain_repair_station_MS_MAT_Cast_Iron_Color.png"
-dest_files=["res://.godot/imported/mountain_repair_station_MS_MAT_Cast_Iron_Color.png-8abb855ce854c1e3e648b034fdbfe69f.ctex"]
+dest_files=["res://.godot/imported/mountain_repair_station_MS_MAT_Cast_Iron_Color.png-8abb855ce854c1e3e648b034fdbfe69f.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +41,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0
