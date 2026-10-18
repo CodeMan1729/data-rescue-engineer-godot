@@ -37,8 +37,8 @@ var replay_button: Button
 var expand_button: Button
 var monitor_panel: Control
 var event_log: RichTextLabel
-var output_cells: HFlowContainer
-var input_cells: HFlowContainer
+var output_cells: HBoxContainer
+var input_cells: HBoxContainer
 var data_bus: Control
 var step_caption: Label
 var left_caption: Label
@@ -56,9 +56,17 @@ var maximized: bool = false
 var sound_player: AudioStreamPlayer
 var sound_on: bool = true
 var footer_note: Label
+const FILE_TABS = ["player.c", "player.h", "trace_harness.c"]
+var tab_buttons: Dictionary = {}
+var lock_banner: Label
+var current_file: String = ""
+var player_text: String = ""
+var readonly_texts: Dictionary = {}
+var sidebar_panel: Control
+var sidebar_toggle: Button
 
 func _ready() -> void:
-    get_window().min_size = Vector2i(1180, 720)
+    get_window().min_size = Vector2i(1180, 800)
     RenderingServer.set_default_clear_color(BG)
     work_dir = OS.get_user_data_dir()
     DirAccess.make_dir_recursive_absolute(work_dir)
@@ -71,17 +79,19 @@ func _ready() -> void:
     _log("TRACE：输出帧来自多次真实 C 函数调用，每个长度单独测试。", CYAN)
 
 func _ensure_firmware() -> void:
+    # player.c 属于玩家，只在缺失时复制；评分用的只读文件每次都覆盖为官方版本。
     for filename in ["player.c", "player.h", "trace_harness.c"]:
         var target: String = work_dir.path_join(filename)
-        if not FileAccess.file_exists(target):
-            var source: String = "res://firmware/" + filename
-            var f: FileAccess = FileAccess.open(source, FileAccess.READ)
-            if f != null:
-                var dst: FileAccess = FileAccess.open(target, FileAccess.WRITE)
-                if dst != null:
-                    dst.store_buffer(f.get_buffer(f.get_length()))
-                    dst.close()
-                f.close()
+        if filename == "player.c" and FileAccess.file_exists(target):
+            continue
+        var source: String = "res://firmware/" + filename
+        var f: FileAccess = FileAccess.open(source, FileAccess.READ)
+        if f != null:
+            var dst: FileAccess = FileAccess.open(target, FileAccess.WRITE)
+            if dst != null:
+                dst.store_buffer(f.get_buffer(f.get_length()))
+                dst.close()
+            f.close()
 
 func _style(fill: Color, edge: Color = BORDER, radius: int = 8, border: int = 1) -> StyleBoxFlat:
     var sb := StyleBoxFlat.new()
@@ -173,9 +183,25 @@ func _build_interface() -> void:
     columns.add_theme_constant_override("separation", 12)
     app.add_child(columns)
 
+    # 侧栏：左边一条窄按钮可折叠/展开（Ctrl+B），展开时可拖动分隔线调宽。
+    sidebar_toggle = Button.new()
+    sidebar_toggle.text = "◀"
+    sidebar_toggle.tooltip_text = "折叠 / 展开待处理事件侧栏 (Ctrl+B)"
+    sidebar_toggle.custom_minimum_size = Vector2(26, 0)
+    sidebar_toggle.focus_mode = Control.FOCUS_NONE
+    sidebar_toggle.add_theme_stylebox_override("normal", _style(PANEL_ALT, BORDER, 6))
+    sidebar_toggle.add_theme_stylebox_override("hover", _style(Color("#1a3a3b"), GREEN, 6))
+    sidebar_toggle.pressed.connect(_toggle_sidebar)
+    columns.add_child(sidebar_toggle)
+    var split := HSplitContainer.new()
+    split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    split.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    columns.add_child(split)
+
     var left_p := _panel()
-    left_p.custom_minimum_size.x = 318
-    columns.add_child(left_p)
+    sidebar_panel = left_p
+    left_p.custom_minimum_size.x = 260
+    split.add_child(left_p)
     var left := VBoxContainer.new()
     left.add_theme_constant_override("separation", 14)
     left_p.add_child(left)
@@ -215,7 +241,7 @@ func _build_interface() -> void:
     right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     right.size_flags_vertical = Control.SIZE_EXPAND_FILL
     right.add_theme_constant_override("separation", 11)
-    columns.add_child(right)
+    split.add_child(right)
 
     var ebox := _panel()
     ebox.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -225,7 +251,7 @@ func _build_interface() -> void:
     ebox.add_child(editor_area)
     var edit_title := HBoxContainer.new()
     editor_area.add_child(edit_title)
-    edit_title.add_child(_label("02 / 固件工作台   player.c", 16, GREEN))
+    edit_title.add_child(_label("02 / 固件工作台", 16, GREEN))
     var title_space := Control.new()
     title_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     edit_title.add_child(title_space)
@@ -239,10 +265,23 @@ func _build_interface() -> void:
     expand_button.pressed.connect(_toggle_expand)
     edit_title.add_child(expand_button)
 
+    # 文件标签页：绿色=可编辑（你写的），黄色=只读（设备自带，评分用）
+    var tabs := HBoxContainer.new()
+    tabs.add_theme_constant_override("separation", 6)
+    editor_area.add_child(tabs)
+    for fname in FILE_TABS:
+        var tb := _button("")
+        tb.alignment = HORIZONTAL_ALIGNMENT_LEFT
+        tb.pressed.connect(func() -> void: _switch_file(fname))
+        tab_buttons[fname] = tb
+        tabs.add_child(tb)
+    lock_banner = _label("", 13, GREEN, true)
+    editor_area.add_child(lock_banner)
+
     editor = CodeEdit.new()
     editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     editor.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    editor.custom_minimum_size.y = 250
+    editor.custom_minimum_size.y = 150
     editor.gutters_draw_line_numbers = true
     editor.indent_use_spaces = true
     editor.indent_size = 4
@@ -288,7 +327,7 @@ func _build_interface() -> void:
     edit_footer.add_child(compile_button)
 
     monitor_panel = _panel()
-    monitor_panel.custom_minimum_size.y = 250
+    monitor_panel.custom_minimum_size.y = 290
     right.add_child(monitor_panel)
     var monitor := VBoxContainer.new()
     monitor.add_theme_constant_override("separation", 5)
@@ -304,41 +343,41 @@ func _build_interface() -> void:
     monitor_header.add_child(replay_button)
     run_status = _label("尚未编译", 13, AMBER)
     monitor_header.add_child(run_status)
-    var data_row := HBoxContainer.new()
-    data_row.add_theme_constant_override("separation", 10)
-    data_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    monitor.add_child(data_row)
-    var input_side := VBoxContainer.new()
-    input_side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    input_side.add_theme_constant_override("separation", 4)
-    data_row.add_child(input_side)
-    input_side.add_child(_label("INPUT / 起始输出字节 + 复制指令", 12, CYAN))
+    # 纵向堆叠：INPUT 一行、总线一条、OUTPUT 一行。每行单排横向滚动，字节不再换行成竖列。
+    var input_head := HBoxContainer.new()
+    monitor.add_child(input_head)
+    input_head.add_child(_label("INPUT / 起始输出字节 + 复制指令", 12, CYAN))
     input_status = _label("", 13, TEXT)
-    input_side.add_child(input_status)
+    input_head.add_child(input_status)
     var in_scroll := ScrollContainer.new()
-    in_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    input_side.add_child(in_scroll)
-    input_cells = HFlowContainer.new()
-    input_cells.add_theme_constant_override("h_separation", 3)
-    input_cells.add_theme_constant_override("v_separation", 3)
+    in_scroll.custom_minimum_size.y = 64
+    in_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+    monitor.add_child(in_scroll)
+    input_cells = HBoxContainer.new()
+    input_cells.add_theme_constant_override("separation", 3)
     in_scroll.add_child(input_cells)
+    var bus_row := HBoxContainer.new()
+    bus_row.add_theme_constant_override("separation", 10)
+    monitor.add_child(bus_row)
+    var bus_caption := _label("数据总线（装饰动画）：运行中流动，通过后变绿", 11, MUTED)
+    bus_row.add_child(bus_caption)
     data_bus = Control.new()
     data_bus.set_script(load("res://scripts/data_bus.gd"))
-    data_bus.custom_minimum_size = Vector2(75, 70)
-    data_row.add_child(data_bus)
-    var output_side := VBoxContainer.new()
-    output_side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    output_side.add_theme_constant_override("separation", 4)
-    data_row.add_child(output_side)
-    output_side.add_child(_label("OUTPUT / 真实缓冲区", 12, AMBER))
+    data_bus.custom_minimum_size = Vector2(120, 34)
+    data_bus.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    data_bus.tooltip_text = "纯装饰：表示 C 函数正在读写缓冲区。琥珀色=运行中/未通过，绿色=该关通过。不含任何数据。"
+    bus_row.add_child(data_bus)
+    var output_head := HBoxContainer.new()
+    monitor.add_child(output_head)
+    output_head.add_child(_label("OUTPUT / 真实缓冲区", 12, AMBER))
     output_status = _label("尚未执行", 13, TEXT)
-    output_side.add_child(output_status)
+    output_head.add_child(output_status)
     var out_scroll := ScrollContainer.new()
-    out_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    output_side.add_child(out_scroll)
-    output_cells = HFlowContainer.new()
-    output_cells.add_theme_constant_override("h_separation", 3)
-    output_cells.add_theme_constant_override("v_separation", 3)
+    out_scroll.custom_minimum_size.y = 64
+    out_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+    monitor.add_child(out_scroll)
+    output_cells = HBoxContainer.new()
+    output_cells.add_theme_constant_override("separation", 3)
     out_scroll.add_child(output_cells)
     step_caption = _label("等待 C 代码运行。", 13, MUTED, true)
     monitor.add_child(step_caption)
@@ -362,15 +401,53 @@ func _build_interface() -> void:
 func _load_firmware() -> void:
     var f := FileAccess.open(work_dir.path_join("player.c"), FileAccess.READ)
     if f != null:
-        editor.text = f.get_as_text()
+        player_text = f.get_as_text()
         f.close()
+    for fname in FILE_TABS:
+        if fname == "player.c":
+            continue
+        var r := FileAccess.open("res://firmware/" + fname, FileAccess.READ)
+        readonly_texts[fname] = r.get_as_text() if r != null else "// 无法读取 " + fname
+        if r != null:
+            r.close()
+    current_file = ""
+    _switch_file("player.c")
+
+func _player_source() -> String:
+    return editor.text if current_file == "player.c" else player_text
+
+func _switch_file(fname: String) -> void:
+    if current_file == "player.c":
+        player_text = editor.text
+    current_file = fname
+    var writable: bool = fname == "player.c"
+    editor.editable = writable
+    editor.text = player_text if writable else str(readonly_texts.get(fname, ""))
+    editor.set_caret_line(0)
+    editor.set_caret_column(0)
+    var accent: Color = GREEN if writable else AMBER
+    editor.add_theme_stylebox_override("normal", _style(Color("#08141a") if writable else Color("#16130a"), accent if not writable else Color("#355a66"), 5, 2 if not writable else 1))
+    editor.add_theme_color_override("caret_color", accent)
+    lock_banner.add_theme_color_override("font_color", accent)
+    if writable:
+        lock_banner.text = "✎ player.c · 可编辑：这是你要写的文件，在这里实现 copy_match()。"
+    else:
+        lock_banner.text = "🔒 %s · 只读：设备自带，评分用，不可修改。每次 F5 前会自动还原官方版本，改了也无效。" % fname
+    for key in tab_buttons:
+        var tb: Button = tab_buttons[key]
+        var is_w: bool = key == "player.c"
+        var col: Color = GREEN if is_w else AMBER
+        var active: bool = key == fname
+        tb.text = ("✎ " if is_w else "🔒 ") + str(key) + ("  · 可编辑" if is_w else "  · 只读")
+        tb.add_theme_color_override("font_color", col)
+        tb.add_theme_stylebox_override("normal", _style(Color("#1a3a3b") if (active and is_w) else (Color("#2e2710") if active else PANEL_ALT), col if active else BORDER, 6, 2 if active else 1))
 
 func _save_firmware(display_message: bool) -> bool:
     var file := FileAccess.open(work_dir.path_join("player.c"), FileAccess.WRITE)
     if file == null:
         _log("不能保存 player.c。请检查文件权限。", RED)
         return false
-    file.store_string(editor.text)
+    file.store_string(_player_source())
     file.close()
     if display_message:
         _log("已保存真实 C 源码 → " + work_dir.path_join("player.c"), GREEN)
@@ -380,8 +457,10 @@ func _save_firmware(display_message: bool) -> bool:
 func _restore_firmware() -> void:
     var f := FileAccess.open("res://firmware/player.c", FileAccess.READ)
     if f != null:
-        editor.text = f.get_as_text()
+        player_text = f.get_as_text()
         f.close()
+        current_file = ""
+        _switch_file("player.c")
         _save_firmware(true)
         _log("已恢复带有故障的旧固件。再按 F5 观察失败数据。", AMBER)
 
@@ -394,6 +473,11 @@ func _toggle_expand() -> void:
     maximized = not maximized
     monitor_panel.visible = not maximized
     expand_button.text = "⛶  恢复监测区" if maximized else "⛶  放大编辑区"
+    _beep("click")
+
+func _toggle_sidebar() -> void:
+    sidebar_panel.visible = not sidebar_panel.visible
+    sidebar_toggle.text = "◀" if sidebar_panel.visible else "▶"
     _beep("click")
 
 func _select_case(index: int) -> void:
@@ -465,6 +549,7 @@ func _begin_playback() -> void:
 func _compile() -> void:
     if compiling:
         return
+    _ensure_firmware()   # 还原只读的评分文件，防止被外部改动
     if not _save_firmware(false):
         return
     if FileAccess.file_exists(work_dir.path_join("run_result.txt")):
@@ -661,6 +746,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
             get_viewport().set_input_as_handled()
         elif event.ctrl_pressed and event.keycode == KEY_S:
             _save_firmware(true)
+            get_viewport().set_input_as_handled()
+        elif event.ctrl_pressed and event.keycode == KEY_B:
+            _toggle_sidebar()
             get_viewport().set_input_as_handled()
         elif event.ctrl_pressed and event.keycode == KEY_EQUAL:
             _resize_editor(1)

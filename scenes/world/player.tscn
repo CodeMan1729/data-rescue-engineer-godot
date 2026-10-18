@@ -1,0 +1,65 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/player.gd" id="1"]
+
+[sub_resource type="CapsuleShape3D" id="Capsule"]
+radius = 0.22
+height = 1.75
+
+[node name="Player" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 1
+floor_snap_length = 0.2
+script = ExtResource("1")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.875, 0)
+shape = SubResource("Capsule")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 1.62, 0)
+current = true
+fov = 75.0
+near = 0.05
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Crosshair" type="Label" parent="HUD"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -6.0
+offset_top = -14.0
+offset_right = 6.0
+offset_bottom = 14.0
+mouse_filter = 2
+text = "+"
+horizontal_alignment = 1
+
+[node name="Prompt" type="Label" parent="HUD"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 20.0
+offset_top = 16.0
+offset_right = 360.0
+offset_bottom = 48.0
+mouse_filter = 2
+
+[node name="Help" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 700.0
+offset_bottom = 52.0
+mouse_filter = 2
+text = "WASD 移动 · 鼠标转向 · Shift 慢走 · E 交互 · Esc 暂停操作"
+
+[node name="Status" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 56.0
+offset_right = 700.0
+offset_bottom = 90.0
+mouse_filter = 2
