@@ -38,6 +38,7 @@
 │   ├── 主工程说明.md          # 说明主 .blend 与 GLB 导出流程
 │   ├── Data_Rescue_Forest_Station.blend  # 唯一主工程：森林加维修站
 │   ├── Data_Rescue_Forest_Station.blend1 # Blender 备份
+│   ├── export_outdoor.py      # T06 只读导出：地形分块、近远植被网格及实例清单
 │   └── mine/                  # T13a 独立矿场资产；用户目视审核通过
 │       ├── Data_Rescue_Mine.blend # mine_site 与 mine_vista 两个场景；SOLID 视口
 │       ├── build_mine.py      # 本次初建记录；拒绝覆盖已有源文件
@@ -47,6 +48,10 @@
 │       ├── node_manifest.json # 所有节点、坐标、面数、碰撞与交互标记清单
 │       └── README.md          # 使用与导出说明、标记约定、用户目视检查清单
 ├── assets/
+│   ├── outdoor/
+│   │   ├── region_*.glb[.import] # 42 个地形与草甸分块；32 米分区及 Godot 导入配置
+│   │   ├── vegetation.glb[.import] # 70 类源植被与石块的近远网格及导入配置
+│   │   └── manifest.json      # 源文件与导出哈希、坐标变换、3,086 个实例
 │   ├── mine/
 │   │   ├── mine_site.glb      # 入口营地；28,104 三角形；23 碰撞标记、8 交互标记
 │   │   └── mine_vista.glb     # 远景轮廓与四处发光体；444 三角形
@@ -57,12 +62,13 @@
 ├── project.godot              # Godot 工程配置：主场景 main.tscn，1480x940，GL Compatibility
 ├── main.tscn                  # 原有 2D 原型主场景：根节点 Control，挂 scripts/main.gd
 ├── scenes/world/
-│   ├── world.tscn             # T04 独立世界入口：维修站、玩家、光照和碰撞容器
+│   ├── world.tscn             # T04/T06 独立世界入口：维修站、玩家、室外与天气
 │   └── player.tscn            # 第一人称玩家、胶囊碰撞、相机和 HUD
 ├── 启动游戏.bat               # 启动器：引擎在则直接启动；否则调用 install-godot.ps1；--path 用 %PROJ%（无尾部反斜杠）
 ├── 安装引擎.bat               # 单独运行 install-godot.ps1
 ├── 安装编译器.bat             # 单独运行 setup-compiler.ps1
 ├── docs/
+│   ├── T06-outdoor.md         # T06 运行、天气接口、导出、验证及用户目视清单
 │   ├── T04-world.md           # T04 运行方法、接口、验证命令和用户目视检查清单
 │   └── 设备手册.md            # 游戏内设备/任务背景手册
 ├── firmware/
@@ -71,6 +77,8 @@
 │   └── trace_harness.c        # 评分夹具（输出 SUMMARY| 等协议行）；游戏内黄色只读，每次 F5 前自动还原官方版
 ├── scripts/
 │   ├── world/
+│   │   ├── outdoor.gd[.uid]   # 分块地形、MultiMesh LOD、树石碰撞、地图边界与前廊缓坡；草地泥土植被无高光，湿度渐变
+│   │   ├── environment.gd[.uid] # 自动天气与昼夜模拟、日月光、雨粒子及雨声占位；保留 set_preset 给 T07
 │   │   ├── interactable.gd[.uid] # 可启用的交互基类、提示及信号；UID 由 Godot 生成
 │   │   ├── player.gd[.uid]    # 行走、鼠标视角、暂停操作和遮挡射线
 │   │   └── world.gd[.uid]     # 组合简化碰撞、五个占位交互点和开启门实例
@@ -82,6 +90,7 @@
 │   ├── setup-compiler.ps1     # 下载便携 TinyCC 到 tools/tcc
 │   └── install-godot.ps1      # 安装 Godot：续传、进度/速度/ETA、SHA512 校验、暂存解压
 ├── tests/
+│   ├── test_outdoor.gd[.uid] # T06 无头天气模拟、材质高光、地形、边界及出入门物理测试
 │   ├── test_world.gd[.uid]   # T04 无头物理与交互回归测试及 Godot 资源标识
 │   ├── README.txt             # 测试说明
 │   └── test_c.sh              # C 固件测试脚本
@@ -100,6 +109,12 @@ main.tscn → main.gd ─(F5)→ runner.ps1 → tcc/gcc 编译 firmware/*.c → 
 ```
 
 ## 变更记录
+
+- 2026-10-18：用户目视审核 T06 通过（“完美！”）。更新 `progress.md`、`docs/T06-outdoor.md` 与本文件的验收状态。无文件新增或删除，代码未修改。
+
+- 2026-10-18：T06 用户目视后返工。天气与昼夜改为自动渐变模拟（`environment.gd` 重写，加日月两盏光、云量、渐强雨与雨声、慢速湿度）；草地、泥土、植被去高光，湿了只变暗，硬表面湿了才有高光（`outdoor.gd`）；玩家 `floor_max_angle` 放宽到 55°（`player.tscn`），解决山腰 45° 到 50° 的坡走不上去。更新 `tests/test_outdoor.gd`、`docs/T06-outdoor.md`、`progress.md`。无新增、无删除文件。无头测试通过；未截图、未渲染检查、未测帧率。
+
+- 2026-10-18：完成 T06 实现与逻辑验证，等待用户目视审核。新增室外导出脚本、43 个 GLB 及导入配置、实例清单、两个运行脚本及 UID、测试及 UID、交付文档。修改 `world.tscn`、`world.gd` 和 `test_world.gd`，把前廊接到室外。更新本文件及 `progress.md`。无删除。两次导出字节一致；主 Blender、备份与维修站 GLB 未改。使用源文件轻量预览粒子分布与实体预览材质色；不烘焙、不渲染。无头天气组合、地形、出入门及 T04 回归通过。未测帧率。未执行其他任务。`_reference/` 未访问，条目沿用旧清单。
 
 - 2026-10-18：用户明确确认 T13a 目视审核“通过”。更新 `progress.md`、`art_source/mine/README.md` 与本文件的验收状态。无文件新增或删除，模型与代码未修改。T06 与 T13b 等待另行派工。
 

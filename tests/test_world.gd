@@ -82,7 +82,7 @@ func run() -> void:
 	check(not player.test_move(player.global_transform, Vector3(0, 0, 1.2)), "Doorway/threshold blocks exit")
 	player.position.z = 3.9
 	check(not player.test_move(player.global_transform, Vector3(0, 0, -1.2)), "Doorway/threshold blocks entry")
-	check(player.test_move(player.global_transform, Vector3(0, 0, 1)), "Porch boundary missing")
+	check(not player.test_move(player.global_transform, Vector3(0, 0, 1)), "T06 porch exit blocked")
 	player.position = Vector3(0, 0.5, 0)
 	player.set_physics_process(true)
 	for i in 60:

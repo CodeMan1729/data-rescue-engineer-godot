@@ -70,10 +70,7 @@ func _build_collisions() -> void:
 			box = part if first else box.merge(part)
 			first = false
 		_box(body, group_name, box)
-	# Temporary boundary on the existing porch. Outdoor traversal belongs to T06.
-	_box(body, "PorchLimitSouth", AABB(Vector3(-2.2, 0, 4.3), Vector3(3.7, 3, 0.1)))
-	_box(body, "PorchLimitWest", AABB(Vector3(-2.2, 0, 3.1), Vector3(0.1, 3, 1.2)))
-	_box(body, "PorchLimitEast", AABB(Vector3(1.4, 0, 3.1), Vector3(0.1, 3, 1.2)))
+	# T06 supplies the outdoor terrain, porch ramp and map boundary.
 
 func _build_interactions() -> void:
 	var definitions := {

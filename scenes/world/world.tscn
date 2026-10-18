@@ -1,17 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="PackedScene" path="res://assets/mountain_station/mountain_repair_station.glb" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/world/player.tscn" id="2"]
 [ext_resource type="Script" path="res://scripts/world/world.gd" id="3"]
-
-[sub_resource type="Environment" id="Environment"]
-background_mode = 1
-background_color = Color(0.22, 0.29, 0.38, 1)
-ambient_light_source = 3
-ambient_light_color = Color(0.58, 0.7, 0.9, 1)
-ambient_light_energy = 0.55
-reflected_light_source = 2
-tonemap_mode = 0
+[ext_resource type="Script" path="res://scripts/world/outdoor.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/world/environment.gd" id="5"]
 
 [node name="World" type="Node3D"]
 script = ExtResource("3")
@@ -24,8 +17,11 @@ collision_mask = 4
 
 [node name="Interactables" type="Node3D" parent="."]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment")
+[node name="Outdoor" type="Node3D" parent="."]
+script = ExtResource("4")
+
+[node name="Environment" type="WorldEnvironment" parent="."]
+script = ExtResource("5")
 
 [node name="WarmCeilingLight" type="OmniLight3D" parent="."]
 position = Vector3(0, 2.25, 0)
